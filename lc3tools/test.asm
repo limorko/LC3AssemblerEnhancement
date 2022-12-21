@@ -1,0 +1,3 @@
+.ORIG	x3000
+RST  R0
+.END
