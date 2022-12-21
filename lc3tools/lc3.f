@@ -57,8 +57,9 @@ enum opcode_t {
     OP_NONE,
 
     /* real instruction opcodes */
+    /* added OP_RST and OP_SUB */
     OP_ADD, OP_AND, OP_BR, OP_JMP, OP_JSR, OP_JSRR, OP_LD, OP_LDI, OP_LDR,
-    OP_LEA, OP_NOT, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_TRAP,
+    OP_LEA, OP_NOT, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_SUB, OP_TRAP,
 
     /* trap pseudo-ops */
     OP_GETC, OP_HALT, OP_IN, OP_OUT, OP_PUTS, OP_PUTSP,
@@ -77,8 +78,9 @@ static const char* const opnames[NUM_OPS] = {
     "missing opcode",
 
     /* real instruction opcodes */
+    /* added RST and SUB */
     "ADD", "AND", "BR", "JMP", "JSR", "JSRR", "LD", "LDI", "LDR", "LEA",
-    "NOT", "RST", "RTI", "ST", "STI", "STR", "TRAP",
+    "NOT", "RST", "RTI", "ST", "STI", "STR", "SUB", "TRAP",
 
     /* trap pseudo-ops */
     "GETC", "HALT", "IN", "OUT", "PUTS", "PUTSP",
@@ -112,6 +114,7 @@ static const int op_format_ok[NUM_OPS] = {
     0x200, /* no opcode, no operands       */
 
     /* real instruction formats */
+    /* added RST and SUB */
     0x003, /* ADD: RRR or RRI formats only */
     0x003, /* AND: RRR or RRI formats only */
     0x0C0, /* BR: I or L formats only      */
@@ -128,6 +131,7 @@ static const int op_format_ok[NUM_OPS] = {
     0x018, /* ST: RI or RL formats only    */
     0x018, /* STI: RI or RL formats only   */
     0x002, /* STR: RRI format only         */
+    0x003, /* SUB: RRR or RRI formats only */
     0x040, /* TRAP: I format only          */
 
     /* trap pseudo-op formats (no operands) */
@@ -235,6 +239,7 @@ O_     {ENDLINE}
 %%
 
     /* rules for real instruction opcodes */
+    /* added RST and SUB */
 ADD       {inst.op = OP_ADD;   BEGIN (ls_operands);}
 AND       {inst.op = OP_AND;   BEGIN (ls_operands);}
 BR{CCODE} {inst.op = OP_BR;    parse_ccode (yytext + 2); BEGIN (ls_operands);}
@@ -251,6 +256,7 @@ RTI       {inst.op = OP_RTI;   BEGIN (ls_operands);}
 STI       {inst.op = OP_STI;   BEGIN (ls_operands);}
 STR       {inst.op = OP_STR;   BEGIN (ls_operands);}
 ST        {inst.op = OP_ST;    BEGIN (ls_operands);}
+SUB       {inst.op = OP_SUB;   BEGIN (ls_operands);}
 TRAP      {inst.op = OP_TRAP;  BEGIN (ls_operands);}
 
     /* rules for trap pseudo-ols */
@@ -612,6 +618,7 @@ generate_instruction (operands_t operands, const char* opstr)
 
     switch (inst.op) {
 	/* Generate real instruction opcodes. */
+    /* added RST and SUB */
 	case OP_ADD:
 	    if (operands == O_RRI) {
 	    	/* Check or read immediate range (error in first pass
@@ -681,6 +688,15 @@ generate_instruction (operands_t operands, const char* opstr)
 	case OP_STR:
 	    (void)read_val (o3, &val, 6);
 	    write_value (0x7000 | (r1 << 9) | (r2 << 6) | (val & 0x3F));
+	    break;
+    case OP_SUB:
+	    if (operands == O_RRI) {
+	    	/* Check or read immediate range (error in first pass
+		   prevents execution of second, so never fails). */
+	        (void)read_val (o3, &val, 5);
+		write_value (0x1020 | (r1 << 9) | (r2 << 6) | (val & 0x1F));
+	    } else
+		write_value (0x1000 | (r1 << 9) | (r2 << 6) | r3);
 	    break;
 	case OP_TRAP:
 	    (void)read_val (o1, &val, 8);
