@@ -695,8 +695,22 @@ generate_instruction (operands_t operands, const char* opstr)
 		   prevents execution of second, so never fails). */
 	        (void)read_val (o3, &val, 5);
 		write_value (0x1020 | (r1 << 9) | (r2 << 6) | ((val * (-1)) & 0x1F));
-	    } else
+	    } else{
+        // convert third register to store the negative val 
+        // NOT third register
+        write_value (0x903F | (r3 << 9) | (r3 << 6));
+        // ADD 1 to third register
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x1));
+        // ADD two values in second and third registers, and store it in first register 
 		write_value (0x1000 | (r1 << 9) | (r2 << 6) | r3);
+        // re convert third register to contain its original value 
+        // SUB 1 from third register
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (-1 & 0x1F));
+        // NOT third register
+        write_value (0x903F | (r3 << 9) | (r3 << 6));
+        // to make sure the condition codes are not modified, add 0 to final value in the first register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        }
 	    break;
 	case OP_TRAP:
 	    (void)read_val (o1, &val, 8);
