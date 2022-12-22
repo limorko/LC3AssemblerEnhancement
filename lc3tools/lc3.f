@@ -59,7 +59,7 @@ enum opcode_t {
     /* real instruction opcodes */
     /* added OP_RST and OP_SUB */
     OP_ADD, OP_AND, OP_BR, OP_JMP, OP_JSR, OP_JSRR, OP_LD, OP_LDI, OP_LDR,
-    OP_LEA, OP_NOT, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_SUB, OP_TRAP,
+    OP_LEA, OP_MLT, OP_NOT, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_SUB, OP_TRAP,
 
     /* trap pseudo-ops */
     OP_GETC, OP_HALT, OP_IN, OP_OUT, OP_PUTS, OP_PUTSP,
@@ -80,7 +80,7 @@ static const char* const opnames[NUM_OPS] = {
     /* real instruction opcodes */
     /* added RST and SUB */
     "ADD", "AND", "BR", "JMP", "JSR", "JSRR", "LD", "LDI", "LDR", "LEA",
-    "NOT", "RST", "RTI", "ST", "STI", "STR", "SUB", "TRAP",
+    "MLT", "NOT", "RST", "RTI", "ST", "STI", "STR", "SUB", "TRAP",
 
     /* trap pseudo-ops */
     "GETC", "HALT", "IN", "OUT", "PUTS", "PUTSP",
@@ -125,6 +125,7 @@ static const int op_format_ok[NUM_OPS] = {
     0x018, /* LDI: RI or RL formats only   */
     0x002, /* LDR: RRI format only         */
     0x018, /* LEA: RI or RL formats only   */
+    0x003, /* MLT: RRR or RRI formats only */
     0x004, /* NOT: RR format only          */
     0x020, /* RST: R format only           */
     0x200, /* RTI: no operands allowed     */
@@ -250,6 +251,7 @@ LDI       {inst.op = OP_LDI;   BEGIN (ls_operands);}
 LDR       {inst.op = OP_LDR;   BEGIN (ls_operands);}
 LD        {inst.op = OP_LD;    BEGIN (ls_operands);}
 LEA       {inst.op = OP_LEA;   BEGIN (ls_operands);}
+MLT       {inst.op = OP_MLT;   BEGIN (ls_operands);}
 NOT       {inst.op = OP_NOT;   BEGIN (ls_operands);}
 RST       {inst.op = OP_RST;   BEGIN (ls_operands);}
 RTI       {inst.op = OP_RTI;   BEGIN (ls_operands);}
@@ -669,6 +671,38 @@ generate_instruction (operands_t operands, const char* opstr)
 	    break;
 	case OP_LEA:
 	    write_value (0xE000 | (r1 << 9) | (val & 0x1FF));
+	    break;
+    case OP_MLT:
+	    if (operands == O_RRI) {
+	    	/* Check or read immediate range (error in first pass
+		   prevents execution of second, so never fails). */
+	        (void)read_val (o3, &val, 5);
+        // clear r1 so it will store the answer
+        // and r1 with 0 and store it in itself 
+        write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
+        // loop, add r3 to r1 while r2 is still positive 
+        // add r3 to r1
+        write_value (0x1020 | (r1 << 9) | (r1<< 6) | (val & 0x1F));
+        // decrement r2 by 1 
+        write_value (0x1020 | (r2 << 9) | (r2 << 6) | (-1 & 0x1F));
+        // repeat while r2 is still positive 
+		write_value (CC_P| (-3 & 0x1FF));
+        // to make sure the condition codes are not modified, add 0 to final value in the first register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        } else {
+        // clear r1 so it will store the answer
+        // and r1 with 0 and store it in itself 
+        write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
+        // loop, add r2 to r1 while r3 is still positive 
+        // add r2 to r1
+        write_value (0x1000 | (r1 << 9) | (r1 << 6) | r2);
+        // decrement r3 by 1 
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (-1 & 0x1F));
+        // repeat while r1 is still positive 
+		write_value (CC_P| (-3 & 0x1FF));
+        // to make sure the condition codes are not modified, add 0 to final value in the first register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        }
 	    break;
 	case OP_NOT:
 	    write_value (0x903F | (r1 << 9) | (r2 << 6));
