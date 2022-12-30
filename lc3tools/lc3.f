@@ -57,9 +57,10 @@ enum opcode_t {
     OP_NONE,
 
     /* real instruction opcodes */
-    /* added OP_RST and OP_SUB */
+    /* added OP_RST and OP_SUB and OP_MLT and OP_OPP*/
+    /* OP_OPP: this operation converts a number stored in a register to its opposite (using 2's complement)*/
     OP_ADD, OP_AND, OP_BR, OP_JMP, OP_JSR, OP_JSRR, OP_LD, OP_LDI, OP_LDR,
-    OP_LEA, OP_MLT, OP_NOT, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_SUB, OP_TRAP,
+    OP_LEA, OP_MLT,  OP_NOT, OP_OPP, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_SUB, OP_TRAP,
 
     /* trap pseudo-ops */
     OP_GETC, OP_HALT, OP_IN, OP_OUT, OP_PUTS, OP_PUTSP,
@@ -114,7 +115,7 @@ static const int op_format_ok[NUM_OPS] = {
     0x200, /* no opcode, no operands       */
 
     /* real instruction formats */
-    /* added RST and SUB */
+    /* added RST and SUB and MLT and OPP */
     0x003, /* ADD: RRR or RRI formats only */
     0x003, /* AND: RRR or RRI formats only */
     0x0C0, /* BR: I or L formats only      */
@@ -127,6 +128,7 @@ static const int op_format_ok[NUM_OPS] = {
     0x018, /* LEA: RI or RL formats only   */
     0x003, /* MLT: RRR or RRI formats only */
     0x004, /* NOT: RR format only          */
+    0x020, /* OPP: R format only           */
     0x020, /* RST: R format only           */
     0x200, /* RTI: no operands allowed     */
     0x018, /* ST: RI or RL formats only    */
@@ -253,6 +255,7 @@ LD        {inst.op = OP_LD;    BEGIN (ls_operands);}
 LEA       {inst.op = OP_LEA;   BEGIN (ls_operands);}
 MLT       {inst.op = OP_MLT;   BEGIN (ls_operands);}
 NOT       {inst.op = OP_NOT;   BEGIN (ls_operands);}
+OPP       {inst.op = OP_OPP;   BEGIN (ls_operands);}
 RST       {inst.op = OP_RST;   BEGIN (ls_operands);}
 RTI       {inst.op = OP_RTI;   BEGIN (ls_operands);}
 STI       {inst.op = OP_STI;   BEGIN (ls_operands);}
@@ -677,12 +680,17 @@ generate_instruction (operands_t operands, const char* opstr)
 	    	/* Check or read immediate range (error in first pass
 		   prevents execution of second, so never fails). */
 	        (void)read_val (o3, &val, 5);
+
+        // ADD ZERO CASE !
+
+
         // save r2 MISSING CASE IN WHICH r1 == r2 (then don't restore)
         // ST r2 #0
         write_value (0x3000 | (r2 << 9) | (1 & 0x1FF));
         // BR NZP #1 
         write_value (CC_ | (1 & 0x1FF));
         //THIS MEM LOC contains r3
+
         // clear r1 so it will store the answer
         // and r1 with 0 and store it in itself 
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
@@ -701,15 +709,43 @@ generate_instruction (operands_t operands, const char* opstr)
         // to make sure the condition codes are not modified, add 0 to final value in the first register
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
         } else {
+        // SAVE THE REGISTERS THAT CONTAIN THE FACTORS OF MULT
+        // save r2 MISSING CASE IN WHICH r3 == r2 == r1, don't restore r3)
+        // ST r2 #0
+        write_value (0x3000 | (r2 << 9) | (1 & 0x1FF));
+        // BR NZP #1 
+        write_value (CC_ | (1 & 0x1FF));
+        //THIS MEM LOC contains r2
 
         // save r3 MISSING CASE IN WHICH r3 == r2 == r1, don't restore r3)
-        
         // ST r3 #0
         write_value (0x3000 | (r3 << 9) | (1 & 0x1FF));
         // BR NZP #1 
         write_value (CC_ | (1 & 0x1FF));
         //THIS MEM LOC contains r3
-        // clear r1 so it will store the answer
+
+        // CONVERT TO POSITIVE FACTORS TO PERFORM MULT 
+        // check if r2 is positive by adding 0 and branching accordingly 
+        write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0 & 0x1F));
+        write_value (CC_P| (7 & 0x1FF));
+        // convert to positive if its negative 
+        // NOT register
+        write_value (0x903F | (r2 << 9) | (r2 << 6));
+        // ADD 1 to register
+        write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x1));
+
+
+        // check if r3 is positive by adding 0 and branching accordingly 
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0 & 0x1F));
+        write_value (CC_P| (2 & 0x1FF));
+        // convert to positive if its negative 
+        // NOT register
+        write_value (0x903F | (r3 << 9) | (r3 << 6));
+        // ADD 1 to register
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x1));
+
+        // NOW ALL FACTORS ARE POSITIVE PERFORM MULT
+        // clear r1 so it will store the PRODUCT
         // and r1 with 0 and store it in itself 
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
         // loop, add r2 to r1 while r3 is still positive 
@@ -719,11 +755,33 @@ generate_instruction (operands_t operands, const char* opstr)
         write_value (0x1020 | (r3 << 9) | (r3 << 6) | (-1 & 0x1F));
         // repeat while r1 is still positive 
 		write_value (CC_P| (-3 & 0x1FF));
-
+        
         // restore r3
         // LD r3, PC #-5
         write_value (0x2000 | (r3 << 9) | (-5 & 0x1FF));
 
+        // restore r2
+        // LD r2, PC #-5
+        write_value (0x2000 | (r2 << 9) | (-8 & 0x1FF));
+
+
+        // IF PRODUCT IS SUPPOSED TO BE NEGATIVE CONVERT TO NEGATIVE PRODUCT 
+        // check r2
+        // if r2 is negative  
+        write_value (CC_P| (2 & 0x1FF));
+
+        // check r3 
+        // add 0 to r3
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x0));
+        // if r3 is positive 
+
+        // convert r1 to its negative 
+        // NOT register
+        write_value (0x903F | (r1 << 9) | (r1 << 6));
+        // ADD 1 to register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));
+
+        
         // to make sure the condition codes are not modified, add 0 to final value in the first register
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
         
@@ -732,6 +790,17 @@ generate_instruction (operands_t operands, const char* opstr)
 	case OP_NOT:
 	    write_value (0x903F | (r1 << 9) | (r2 << 6));
 	    break;
+
+    case OP_OPP: 
+        // convert register to store the opposite val (if it's positve it becomes negative and viceversa)
+        // NOT register
+        write_value (0x903F | (r1 << 9) | (r1 << 6));
+        // ADD 1 to register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));
+        // to make sure the condition codes are not modified, add 0 to final value in the first register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        break;
+
     case OP_RST:                                            
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
         break;
