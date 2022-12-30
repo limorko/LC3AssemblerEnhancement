@@ -677,6 +677,12 @@ generate_instruction (operands_t operands, const char* opstr)
 	    	/* Check or read immediate range (error in first pass
 		   prevents execution of second, so never fails). */
 	        (void)read_val (o3, &val, 5);
+        // save r2 MISSING CASE IN WHICH r1 == r2 (then don't restore)
+        // ST r2 #0
+        write_value (0x3000 | (r2 << 9) | (1 & 0x1FF));
+        // BR NZP #1 
+        write_value (CC_ | (1 & 0x1FF));
+        //THIS MEM LOC contains r3
         // clear r1 so it will store the answer
         // and r1 with 0 and store it in itself 
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
@@ -687,11 +693,17 @@ generate_instruction (operands_t operands, const char* opstr)
         write_value (0x1020 | (r2 << 9) | (r2 << 6) | (-1 & 0x1F));
         // repeat while r2 is still positive 
 		write_value (CC_P| (-3 & 0x1FF));
+
+        // restore r3
+        // LD r2, PC #-5
+        write_value (0x2000 | (r2 << 9) | (-5 & 0x1FF));
+
         // to make sure the condition codes are not modified, add 0 to final value in the first register
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
         } else {
 
-        // save r3 
+        // save r3 MISSING CASE IN WHICH r3 == r2 == r1, don't restore r3)
+        
         // ST r3 #0
         write_value (0x3000 | (r3 << 9) | (1 & 0x1FF));
         // BR NZP #1 
@@ -709,7 +721,7 @@ generate_instruction (operands_t operands, const char* opstr)
 		write_value (CC_P| (-3 & 0x1FF));
 
         // restore r3
-        // LD r3, PC #-6
+        // LD r3, PC #-5
         write_value (0x2000 | (r3 << 9) | (-5 & 0x1FF));
 
         // to make sure the condition codes are not modified, add 0 to final value in the first register
@@ -720,7 +732,7 @@ generate_instruction (operands_t operands, const char* opstr)
 	case OP_NOT:
 	    write_value (0x903F | (r1 << 9) | (r2 << 6));
 	    break;
-    case OP_RST: 
+    case OP_RST:                                            
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
         break;
 	case OP_RTI:
