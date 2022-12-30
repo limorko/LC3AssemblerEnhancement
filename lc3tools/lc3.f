@@ -690,6 +690,13 @@ generate_instruction (operands_t operands, const char* opstr)
         // to make sure the condition codes are not modified, add 0 to final value in the first register
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
         } else {
+
+        // save r3 
+        // ST r3 #0
+        write_value (0x3000 | (r3 << 9) | (1 & 0x1FF));
+        // BR NZP #1 
+        write_value (CC_ | (1 & 0x1FF));
+        //THIS MEM LOC contains r3
         // clear r1 so it will store the answer
         // and r1 with 0 and store it in itself 
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
@@ -700,8 +707,14 @@ generate_instruction (operands_t operands, const char* opstr)
         write_value (0x1020 | (r3 << 9) | (r3 << 6) | (-1 & 0x1F));
         // repeat while r1 is still positive 
 		write_value (CC_P| (-3 & 0x1FF));
+
+        // restore r3
+        // LD r3, PC #-6
+        write_value (0x2000 | (r3 << 9) | (-5 & 0x1FF));
+
         // to make sure the condition codes are not modified, add 0 to final value in the first register
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        
         }
 	    break;
 	case OP_NOT:
