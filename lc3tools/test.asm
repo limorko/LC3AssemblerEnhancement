@@ -1,3 +1,3 @@
 .ORIG	x3000
-RST  R0
+SUB  R0, R1, R2
 .END
