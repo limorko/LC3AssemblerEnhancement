@@ -760,6 +760,7 @@ generate_instruction (operands_t operands, const char* opstr)
         // PICK TEMPORARY REGISTERS TO PERFORM OPERATION
         int r4 = 0; 
         int r5 = 1; 
+        int r6 = 2;
 
         // find a register not already being used in this instruction
         while (r4 == r1 || r4 == r2){
@@ -769,7 +770,12 @@ generate_instruction (operands_t operands, const char* opstr)
         while (r5 == r1 || r5 == r2 || r5 == r4 ){
             r5 += 1;
         }
-    
+
+        while (r6 == r1 || r6 == r2 || r6 == r4 || r6 == r5 ){
+            r6 += 1;
+        }
+
+       
         // SAVE VALS OF TEMPORARY REGISTERS 
         // save r4 to not lose its original value
         // ST r4 #0
@@ -789,59 +795,68 @@ generate_instruction (operands_t operands, const char* opstr)
         // replace unconditional branch with r5
         write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                        //loc : 5
 
+        // save r6 to not lose its original value
+        // ST r6 #0
+        write_value (0x3000 | (r6 << 9) | (1 & 0x1FF));                         //loc : 6
+        // BR NZP #1 
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                        //loc : 7
+        //THIS MEM LOC contains r6                                              
+        // replace unconditional branch with r6
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                        //loc : 8
+
         // load actual register and value to temporary regiaters
         // load r2 into r4
-        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));                //loc : 6
-        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                      //loc : 7
+        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));                //loc : 9
+        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                      //loc : 10
 
         // load val into r5
-        write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                //loc : 8
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (val & 0x1F));            //loc : 9
+        write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                //loc : 11
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (val & 0x1F));            //loc : 12
         
 
         // CONVERT TO POSITIVE FACTORS TO PERFORM MULT 
         // check if r5 is positive or zero by adding 0 and branching accordingly 
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 10
-        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 11
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 13
+        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 14
         // convert to positive if its negative 
         // NOT register
-        write_value (0x903F | (r5 << 9) | (r5 << 6));                           //loc : 12
+        write_value (0x903F | (r5 << 9) | (r5 << 6));                           //loc : 15
         // ADD 1 to register
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0x1));                   //loc : 13
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0x1));                   //loc : 16
 
-        // check if r2 is positive OR ZERO by adding 0 and branching accordingly 
-        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0 & 0x1F));              //loc : 14
-        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 15
+        // check if r4 is positive OR ZERO by adding 0 and branching accordingly 
+        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0 & 0x1F));              //loc : 17
+        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 18
         // convert to positive if its negative 
         // NOT register
-        write_value (0x903F | (r4 << 9) | (r4 << 6));                           //loc : 16
+        write_value (0x903F | (r4 << 9) | (r4 << 6));                           //loc : 19
         // ADD 1 to register
-        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0x1));                   //loc : 17
+        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0x1));                   //loc : 20
 
 
         // NOW ALL FACTORS ARE POSITIVE --> PERFORM MULT
-        // clear r1 so it will store the PRODUCT
-        // and r1 with 0 and store it in itself 
-        write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));                //loc : 18
-        // loop, add r4 to r1 while r5 is still positive 
+        // clear r6 so it will store the PRODUCT
+        // and r6 with 0 and store it in itself 
+        write_value (0x5020 | (r6 << 9) | (r6 << 6) | (0x0000));                //loc : 21
+        // loop, add r4 to r6 while r5 is still positive 
         // repeat while r5 is still positive 
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 19
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 22
         // if r5 is zero don't enter the "loop"
-		write_value (CC_Z| (3 & 0x1FF));                                        //loc : 20
-        // add r4 to r1
-        write_value (0x1000 | (r1 << 9) | (r1 << 6) | r4);                      //loc : 21
+		write_value (CC_Z| (3 & 0x1FF));                                        //loc : 23
+        // add r4 to r6
+        write_value (0x1000 | (r6 << 9) | (r6 << 6) | r4);                      //loc : 24
         // decrement r5 by 1 
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (-1 & 0x1F));             //loc : 22
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (-1 & 0x1F));             //loc : 25
         // repeat while r1 is still positive 
-		write_value (CC_P| (-3 & 0x1FF));                                       //loc : 23
+		write_value (CC_P| (-3 & 0x1FF));                                       //loc : 26
         
         // restore r4
         // LD r4, PC #-23
-        write_value (0x2000 | (r4 << 9) | (-23 & 0x1FF));                       //loc : 24
+        write_value (0x2000 | (r4 << 9) | (-26 & 0x1FF));                       //loc : 27
 
         // restore r5
         // LD r5, PC #-21
-        write_value (0x2000 | (r5 << 9) | (-21 & 0x1FF));                        //loc : 25
+        write_value (0x2000 | (r5 << 9) | (-24 & 0x1FF));                        //loc : 28
 
 
         // IF PRODUCT IS SUPPOSED TO BE NEGATIVE CONVERT TO NEGATIVE PRODUCT 
@@ -849,38 +864,47 @@ generate_instruction (operands_t operands, const char* opstr)
         // if val is positive 
         if (val > 0){
             // check r2
-            write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x0));                   //loc : 26
+            write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x0));                   //loc : 29
             // if r2 is negative    
-            write_value (CC_P| (2 & 0x1FF));                                        //loc : 27
+            write_value (CC_P| (2 & 0x1FF));                                        //loc : 30
             // convert r1 to its negative 
             // NOT register
-            write_value (0x903F | (r1 << 9) | (r1 << 6));                           //loc : 28
+            write_value (0x903F | (r6 << 9) | (r6 << 6));                           //loc : 31
             // ADD 1 to register
-            write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));                   //loc : 29
+            write_value (0x1020 | (r6 << 9) | (r6 << 6) | (0x1));                   //loc : 32
         }
         else {
             // if val is negative 
             // check r2
-            write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x0));                   //loc : 30
+            write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x0));                   //loc : 33
             // if r2 is positive 
-            write_value (CC_N | (2 & 0x1FF));                                       //loc : 31
+            write_value (CC_N | (2 & 0x1FF));                                       //loc : 34
             // convert r1 to its negative 
             // NOT register
-            write_value (0x903F | (r1 << 9) | (r1 << 6));                           //loc : 32
+            write_value (0x903F | (r6 << 9) | (r6 << 6));                           //loc : 35
             // ADD 1 to register
-            write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));                   //loc : 33
+            write_value (0x1020 | (r6 << 9) | (r6 << 6) | (0x1));                   //loc : 36
 
         }
 
         // done 
+        // load final result into r1
+        write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));                    //loc : 37
+        write_value (0x1000 | (r1 << 9) | (r1 << 6) | r6);                          //loc : 38
+
+        // restore r6
+        // LD r6, PC #-21
+        write_value (0x2000 | (r6 << 9) | (-31 & 0x1FF));                           //loc : 39
+
         // to make sure the condition codes are not modified, add 0 to final value in the first register
-        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));                   //loc : 34
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));                       //loc : 40
         
         } else {
         
         // PICK TEMPORARY REGISTERS TO PERFORM OPERATION
         int r4 = 0; 
         int r5 = 1; 
+        int r6 = 2;
 
         // find registers that are not already being used in the insturction
         while (r4 == r1 || r4 == r2 || r4 == r3){
@@ -889,6 +913,10 @@ generate_instruction (operands_t operands, const char* opstr)
 
         while (r5 == r1 || r5 == r2 || r5 == r3 || r5 == r4 ){
             r5 += 1;
+        }
+
+        while (r6 == r1 || r6 == r2 || r6 == r4 || r6 == r5 || r6 == r3){
+            r6 += 1;
         }
 
         // USE TEMP REGISTERS FOR THE FACTORS OF THE MULTIPLICATION 
@@ -910,90 +938,109 @@ generate_instruction (operands_t operands, const char* opstr)
         // replace unconditional branch with r5
         write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                        //loc : 5
 
+        // save r6 to not lose its original value
+        // ST r6 #0
+        write_value (0x3000 | (r6 << 9) | (1 & 0x1FF));                         //loc : 6
+        // BR NZP #1 
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                        //loc : 7
+        //THIS MEM LOC contains r6                                              
+        // replace unconditional branch with r6
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                        //loc : 8
+
+        // load actual register and value to temporary regiaters
         // load r2 into r4
-        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));                //loc : 6
-        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                      //loc : 7
+        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));                //loc : 9
+        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                      //loc : 10
 
         // load r3 into r5
-        write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                //loc : 8
-        write_value (0x1000 | (r5 << 9) | (r5 << 6) | r3);                      //loc : 9
+        write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                //loc : 11
+        write_value (0x1000 | (r5 << 9) | (r5 << 6) | r3);                      //loc : 12
         
 
         // CONVERT TO POSITIVE FACTORS TO PERFORM MULT 
         // check if r5 is positive or zero by adding 0 and branching accordingly 
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 10
-        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                        //loc : 11
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 13
+        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 14
         // convert to positive if its negative 
         // NOT register
-        write_value (0x903F | (r5 << 9) | (r5 << 6));                           //loc : 12
+        write_value (0x903F | (r5 << 9) | (r5 << 6));                           //loc : 15
         // ADD 1 to register
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0x1));                   //loc : 13
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0x1));                   //loc : 16
 
-        // check if r2 is positive OR ZERO by adding 0 and branching accordingly 
-        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0 & 0x1F));              //loc : 14
-        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 15
+        // check if r4 is positive OR ZERO by adding 0 and branching accordingly 
+        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0 & 0x1F));              //loc : 17
+        write_value ((CC_P|CC_Z)| (2 & 0x1FF));                                 //loc : 18
         // convert to positive if its negative 
         // NOT register
-        write_value (0x903F | (r4 << 9) | (r4 << 6));                           //loc : 16
+        write_value (0x903F | (r4 << 9) | (r4 << 6));                           //loc : 19
         // ADD 1 to register
-        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0x1));                   //loc : 17
+        write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0x1));                   //loc : 20
 
 
-        // NOW ALL FACTORS ARE POSITIVE PERFORM MULT
-        // clear r1 so it will store the PRODUCT
-        // and r1 with 0 and store it in itself 
-        write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));                //loc : 18
-        // loop, add r4 to r1 while r5 is still positive 
+        // NOW ALL FACTORS ARE POSITIVE --> PERFORM MULT
+        // clear r6 so it will store the PRODUCT
+        // and r6 with 0 and store it in itself 
+        write_value (0x5020 | (r6 << 9) | (r6 << 6) | (0x0000));                //loc : 21
+        // loop, add r4 to r6 while r5 is still positive 
         // repeat while r5 is still positive 
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));             //loc : 19
-		write_value (CC_Z| (3 & 0x1FF));                                        //loc : 20
-        // add r4 to r1
-        write_value (0x1000 | (r1 << 9) | (r1 << 6) | r4);                      //loc : 21
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));              //loc : 22
+        // if r5 is zero don't enter the "loop"
+		write_value (CC_Z| (3 & 0x1FF));                                        //loc : 23
+        // add r4 to r6
+        write_value (0x1000 | (r6 << 9) | (r6 << 6) | r4);                      //loc : 24
         // decrement r5 by 1 
-        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (-1 & 0x1F));             //loc : 22
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (-1 & 0x1F));             //loc : 25
         // repeat while r1 is still positive 
-		write_value (CC_P| (-3 & 0x1FF));                                       //loc : 23
+		write_value (CC_P| (-3 & 0x1FF));                                       //loc : 26
         
         // restore r4
         // LD r4, PC #-23
-        write_value (0x2000 | (r4 << 9) | (-23 & 0x1FF));                       //loc : 24
+        write_value (0x2000 | (r4 << 9) | (-26 & 0x1FF));                       //loc : 27
 
         // restore r5
         // LD r5, PC #-21
-        write_value (0x2000 | (r5 << 9) | (-21 & 0x1FF));                        //loc : 25
-
+        write_value (0x2000 | (r5 << 9) | (-24 & 0x1FF));                       //loc : 28
 
         // IF PRODUCT IS SUPPOSED TO BE NEGATIVE CONVERT TO NEGATIVE PRODUCT 
         // check r2
-        write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x0));                   //loc : 26
+        write_value (0x1020 | (r2 << 9) | (r2 << 6) | (0x0));                   //loc : 29
         // if r2 is negative    
-        write_value (CC_P| (5 & 0x1FF));                                        //loc : 27
+        write_value (CC_P| (5 & 0x1FF));                                        //loc : 30
         // check r3 
         // add 0 to r3
-        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x0));                   //loc : 28
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x0));                   //loc : 31
         // if r3 is positive 
-        write_value (CC_N| (7 & 0x1FF));                                        //loc : 29
-        // convert r1 to its negative (else jump to end)
+        write_value (CC_N| (7 & 0x1FF));                                        //loc : 32
+        // convert r6 to its negative (else jump to done)
         // NOT register
-        write_value (0x903F | (r1 << 9) | (r1 << 6));                           //loc : 30
+        write_value (0x903F | (r6 << 9) | (r6 << 6));                           //loc : 33
         // ADD 1 to register
-        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));                   //loc : 31
+        write_value (0x1020 | (r6 << 9) | (r6 << 6) | (0x1));                   //loc : 34
         // done 
-        write_value ((CC_P | CC_Z | CC_N) | (4 & 0x1FF));                       //loc : 32
+        write_value ((CC_P | CC_Z | CC_N) | (4 & 0x1FF));                       //loc : 35
 
         // if r2 is positive 
         // check r3
-        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x0));                   //loc : 33
+        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x0));                   //loc : 36
         // if r3 is negative 
-        write_value (CC_P| (2 & 0x1FF));                                        //loc : 34
-        // convert r1 to its negative (else jump to end)
+        write_value (CC_P| (2 & 0x1FF));                                        //loc : 37
+        // convert r6 to its negative (else jump to done)
         // NOT register
-        write_value (0x903F | (r1 << 9) | (r1 << 6));                           //loc : 35
+        write_value (0x903F | (r6 << 9) | (r6 << 6));                           //loc : 38
         // ADD 1 to register
-        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));                   //loc : 36
+        write_value (0x1020 | (r6 << 9) | (r6 << 6) | (0x1));                   //loc : 39
+
+        // done 
+        // load final result into r1
+        write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));                    //loc : 40
+        write_value (0x1000 | (r1 << 9) | (r1 << 6) | r6);                          //loc : 41
+
+        // restore r6
+        // LD r6, PC #-21
+        write_value (0x2000 | (r6 << 9) | (-35 & 0x1FF));                           //loc : 42
 
         // to make sure the condition codes are not modified, add 0 to final value in the first register
-        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));                   //loc : 37
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));                       //loc : 43
         
         }
 	    break;
@@ -1012,6 +1059,7 @@ generate_instruction (operands_t operands, const char* opstr)
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
         break;
 
+    // added operation OR, RRI and RRR formats
     case OP_OR:
 	    if (operands == O_RRI) {
 	    	/* Check or read immediate range (error in first pass
@@ -1041,9 +1089,9 @@ generate_instruction (operands_t operands, const char* opstr)
         write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                    
         
         // PERFORM OR ON TEMP REGISTERS AND VAL
-        // NOT r2 
+        // NOT r4
         write_value (0x903F | (r4 << 9) | (r4 << 6));
-        // NOT val; AND r2 and val
+        // NOT val; AND r4 and val
         write_value (0x5020 | (r1 << 9) | (r4 << 6) | (!val & 0x1F));
         // NOT result 
 		write_value (0x903F | (r1 << 9) | (r1 << 6));
@@ -1134,6 +1182,7 @@ generate_instruction (operands_t operands, const char* opstr)
 	    write_value (0x8000);
 	    break;
 
+    // added SQ operation, RR format only
     case OP_SQ:
         if (operands == O_RR){
             // PICK TWO AVAILABLE TEMPORARY REGISTERS 
