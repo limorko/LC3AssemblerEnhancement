@@ -779,7 +779,7 @@ generate_instruction (operands_t operands, const char* opstr)
         write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));                //loc : 18
         // loop, add r4 to r1 while r5 is still positive 
         // repeat while r5 is still positive 
-        write_value (0x10200 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));             //loc : 19
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0 & 0x1F));             //loc : 19
 		write_value (CC_Z| (3 & 0x1FF));                                        //loc : 20
         // add r2 to r1
         write_value (0x1000 | (r1 << 9) | (r1 << 6) | r4);                      //loc : 21
