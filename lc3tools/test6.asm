@@ -1,11 +1,11 @@
 	   .ORIG	x3000
-	   LD		R1, TWO
+	   LD		R1, NEGTWO
        LD       R2, TWENTYSIX
-       ABS      R2
+       ABS      R2, R1
 	   HALT
 ;
 NEGFIFTEEN	   .FILL	xFFF1
 TWENTYSIX      .FILL    x001A
-TWO            .FILL    X0002
+NEGTWO            .FILL    XFFFE
 ;
 	   .END
