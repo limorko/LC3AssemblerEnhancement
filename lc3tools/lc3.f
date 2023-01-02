@@ -133,7 +133,7 @@ static const int op_format_ok[NUM_OPS] = {
     0x003, /* OR: RRR or RRI formats only */
     0x020, /* RST: R format only           */
     0x200, /* RTI: no operands allowed     */
-    0x020, /* SQ: R format only           */
+    0x004, /* SQ: RR format only           */
     0x018, /* ST: RI or RL formats only    */
     0x018, /* STI: RI or RL formats only   */
     0x002, /* STR: RRI format only         */
@@ -1112,15 +1112,15 @@ generate_instruction (operands_t operands, const char* opstr)
 	    break;
 
     case OP_SQ:
-        if (operands == O_R){
+        if (operands == O_RR){
             int r4 = 0; 
             int r5 = 1; 
 
-            while (r4 == r1){
+            while (r4 == r1 || r4 == r2){
                 r4 += 1;
             }
 
-            while (r5 == r1 || r5 == r4 ){
+            while (r5 == r1 || r5 == r4 || r5 == r2){
                 r5 += 1;
             }
 
@@ -1145,11 +1145,11 @@ generate_instruction (operands_t operands, const char* opstr)
 
             // load val into r4
             write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));                //loc : 6
-            write_value (0x1000 | (r4 << 9) | (r4 << 6) | r1);                      //loc : 7
+            write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                      //loc : 7
 
             // load val into r5
             write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                //loc : 8
-            write_value (0x1000 | (r5 << 9) | (r5 << 6) | r1);                      //loc : 9
+            write_value (0x1000 | (r5 << 9) | (r5 << 6) | r2);                      //loc : 9
             
 
             // CONVERT TO POSITIVE FACTORS TO PERFORM MULT 

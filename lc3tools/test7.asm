@@ -8,7 +8,7 @@
 	   LD		R6, ZERO
 	   LD		R7, ONE
 
-	   SQ 		R1
+	   SQ 		R1, R2
 	   HALT
 ;
 FIVE	    .FILL	x0005
