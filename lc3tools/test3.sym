@@ -2,9 +2,11 @@
 // Scope level 0:
 //	Symbol Name       Page Address
 //	----------------  ------------
-//	FIVE              3052
-//	THREE             3053
-//	ONE               3054
-//	NEGTWO            3055
-//	ZERO              3056
+//	FIVE              3028
+//	THREE             3029
+//	ONE               302A
+//	NEGTWO            302B
+//	ZERO              302C
+//	NEGONE            302D
+//	NEGTEN            302E
 
