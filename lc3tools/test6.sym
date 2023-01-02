@@ -1,0 +1,8 @@
+// Symbol table
+// Scope level 0:
+//	Symbol Name       Page Address
+//	----------------  ------------
+//	NEGFIFTEEN        3008
+//	TWENTYSIX         3009
+//	TWO               300A
+
