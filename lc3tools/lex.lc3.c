@@ -4228,23 +4228,66 @@ generate_instruction (operands_t operands, const char* opstr)
         // multiply value by -1 and add this opposite value to r2, store in r1
 		write_value (0x1020 | (r1 << 9) | (r2 << 6) | ((val * (-1)) & 0x1F));
 
-	    } else{
-        // if format is RRR
+	    } else {
+        
+        // PICK TEMP REGISTERS
+        int r4 = 0; 
+        int r5 = 1; 
 
-        // convert third register to store the negative val 
-        // NOT third register
-        write_value (0x903F | (r3 << 9) | (r3 << 6));
-        // ADD 1 to third register
-        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (0x1));
+        while (r4 == r1 || r4 == r2 || r4 == r3){
+            r4 += 1;
+        }
 
-        // ADD two values in second and third registers, and store it in first register 
-		write_value (0x1000 | (r1 << 9) | (r2 << 6) | r3);
+        while (r5 == r1 || r5 == r2 || r5 == r3 || r5 == r4 ){
+            r5 += 1;
+        }
 
-        // re convert third register to contain its original value 
-        // SUB 1 from third register
-        write_value (0x1020 | (r3 << 9) | (r3 << 6) | (-1 & 0x1F));
-        // NOT third register
-        write_value (0x903F | (r3 << 9) | (r3 << 6));
+        // STORE TEMP REGISTERS
+        // save r4
+        // ST r4 #0
+        write_value (0x3000 | (r4 << 9) | (1 & 0x1FF));                        
+        // BR NZP #1 
+        write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                    
+        // THIS MEM LOC contains r4                                              
+        // replace unconditional branch with r4
+        write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                      
+
+        // save r5
+        // ST r5 #0
+        write_value (0x3000 | (r5 << 9) | (1 & 0x1FF));                        
+        // BR NZP #1 
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                      
+        //THIS MEM LOC contains r5                                              
+        // replace unconditional branch with r5
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                       
+
+        // LOAD ACTUAL REGISTERS TO TEMP REGISTERS
+        // load r2 into r4
+        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));               
+        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                     
+
+        // load r3 into r5
+        write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                
+        write_value (0x1000 | (r5 << 9) | (r5 << 6) | r3); 
+
+
+        // convert r5 register to store the negative val 
+        // NOT r5 register
+        write_value (0x903F | (r5 << 9) | (r5 << 6));
+        // ADD 1 to r5
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (0x1));
+
+        // ADD two values in r4 and r5, and store it in r1
+		write_value (0x1000 | (r1 << 9) | (r4 << 6) | r5);
+
+        //RESTORE TEMP REGISTERS 
+        // restore r4
+        // LD r4, PC #
+        write_value (0x2000 | (r4 << 9) | (-12 & 0x1FF));                     
+
+        // restore r5
+        // LD r5, PC #-10
+        write_value (0x2000 | (r5 << 9) | (-10 & 0x1FF));        
 
         // to make sure the condition codes are not modified, add 0 to final value in the first register
         write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));

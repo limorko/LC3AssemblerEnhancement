@@ -13,6 +13,10 @@
 
        ; test SUB: RRI, RRR 
        ;SUB R3, R2, R1       ; R2 = -10 xfff6 R1 = 5 R3 = -15
+       ;SUB R2, R2, R2
+       ;SUB R1, R5, R1
+       ;SUB R7, R3, R3
+       ;SUB R7, R6, R7
 
        ; test MLT: RRI, RRR
        ;MLT R3, R3, #0 ;R3 = 0
