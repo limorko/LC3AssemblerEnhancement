@@ -57,9 +57,9 @@ enum opcode_t {
     OP_NONE,
 
     /* real instruction opcodes */
-    /* added OP_RST and OP_SUB and OP_MLT and OP_OPP and OP_OR*/
+    /* added OP_RST and OP_SUB and OP_MLT and OP_OPP and OP_OR and OP_ABS*/
     /* OP_OPP: this operation converts a number stored in a register to its opposite (using 2's complement)*/
-    OP_ADD, OP_AND, OP_BR, OP_JMP, OP_JSR, OP_JSRR, OP_LD, OP_LDI, OP_LDR,
+    OP_ABS, OP_ADD, OP_AND, OP_BR, OP_JMP, OP_JSR, OP_JSRR, OP_LD, OP_LDI, OP_LDR,
     OP_LEA, OP_MLT,  OP_NOT, OP_OPP, OP_OR, OP_RST, OP_RTI, OP_ST, OP_STI, OP_STR, OP_SUB, OP_TRAP,
 
     /* trap pseudo-ops */
@@ -79,8 +79,8 @@ static const char* const opnames[NUM_OPS] = {
     "missing opcode",
 
     /* real instruction opcodes */
-    /* added RST and SUB and MLT and OPP and OR*/
-    "ADD", "AND", "BR", "JMP", "JSR", "JSRR", "LD", "LDI", "LDR", "LEA",
+    /* added RST and SUB and MLT and OPP and OR and ABS*/
+    "ABS", "ADD", "AND", "BR", "JMP", "JSR", "JSRR", "LD", "LDI", "LDR", "LEA",
     "MLT", "NOT", "OPP", "OR", "RST", "RTI", "ST", "STI", "STR", "SUB", "TRAP",
 
     /* trap pseudo-ops */
@@ -115,7 +115,8 @@ static const int op_format_ok[NUM_OPS] = {
     0x200, /* no opcode, no operands       */
 
     /* real instruction formats */
-    /* added RST and SUB and MLT and OPP and OR*/
+    /* added RST and SUB and MLT and OPP and OR and ABS*/
+    0x020, /* ABS: R format only          */
     0x003, /* ADD: RRR or RRI formats only */
     0x003, /* AND: RRR or RRI formats only */
     0x0C0, /* BR: I or L formats only      */
@@ -244,6 +245,7 @@ O_     {ENDLINE}
 
     /* rules for real instruction opcodes */
     /* added RST and SUB and OR and MLT and OPP */
+ABS       {inst.op = OP_ABS;   BEGIN (ls_operands);}
 ADD       {inst.op = OP_ADD;   BEGIN (ls_operands);}
 AND       {inst.op = OP_AND;   BEGIN (ls_operands);}
 BR{CCODE} {inst.op = OP_BR;    parse_ccode (yytext + 2); BEGIN (ls_operands);}
@@ -627,6 +629,61 @@ generate_instruction (operands_t operands, const char* opstr)
     switch (inst.op) {
 	/* Generate real instruction opcodes. */
     /* added RST and SUB */
+    case OP_ABS:
+        // if r4 is negative 
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        write_value ((CC_P | CC_Z) | (2 & 0x1FF)); 
+        // convert register to store the absolute val
+        // NOT register
+        write_value (0x903F | (r1 << 9) | (r1 << 6));
+        // ADD 1 to register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));
+
+	    // // USE TEMP REGISTER FOR THE FACTOR OF THE MULTIPLICATION 
+        // // PICK TEMP REGISTER
+        // int r4 = 0;
+        // while ((r3== r1 )|| (r4 == r2)){
+        //     r4 += 1;
+        // }
+
+        // // STORE TEMP REGISTER
+        // // save r4
+        // // ST r4 #0
+        // write_value (0x3000 | (r4 << 9) | (1 & 0x1FF));                        
+        // // BR NZP #1 
+        // write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                     
+        // //THIS MEM LOC contains r4                                              
+        // // replace unconditional branch with r4
+        // write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                    
+
+        // // LOAD ACTUAL REGISTER TO TEMP REGISTER
+        // // load r2 into r4
+        // write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0));                
+        // write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                    
+
+        // // clear r1 so it will store the ABS value
+        // // and r1 with 0
+        // write_value (0x5020 | (r1 << 9) | (r1 << 6) | (0x0000));
+        // // add r4
+        // write_value (0x1000 | (r1 << 9) | (r1 << 6) | r4);
+
+        // // if r4 is negative 
+        // write_value (0x1020 | (r4 << 9) | (r4 << 6) | (0x0));
+        // write_value ((CC_P | CC_Z) | (2 & 0x1FF)); 
+        // // convert register to store the absolute val
+        // // NOT register
+        // write_value (0x903F | (r1 << 9) | (r1 << 6));
+        // // ADD 1 to register
+        // write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x1));
+
+        // // restore r4
+        // // LD r4, PC #-10
+        // write_value (0x2000 | (r4 << 9) | (-10 & 0x1FF));     
+
+        // to make sure the condition codes are not modified, add 0 to final value in the first register
+        write_value (0x1020 | (r1 << 9) | (r1 << 6) | (0x0));
+        
+	    break;
 	case OP_ADD:
 	    if (operands == O_RRI) {
 	    	/* Check or read immediate range (error in first pass
@@ -703,7 +760,7 @@ generate_instruction (operands_t operands, const char* opstr)
         // BR NZP #1 
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                       //loc : 1
         //THIS MEM LOC contains r4                                              
-        // replace unconditional branch with r2
+        // replace unconditional branch with r4
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                       //loc : 2
 
         // save r5
@@ -820,7 +877,7 @@ generate_instruction (operands_t operands, const char* opstr)
         // BR NZP #1 
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                       //loc : 1
         //THIS MEM LOC contains r4                                              
-        // replace unconditional branch with r2
+        // replace unconditional branch with r4
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                       //loc : 2
 
         // save r5
@@ -942,11 +999,10 @@ generate_instruction (operands_t operands, const char* opstr)
         // PICK TEMP REGISTER
         int r4 = 0; 
 
-        while (r4 == r1){
+        while (r4 == r1 || r4 == r2){
             r4 += 1;
         }
 
-        
         // STORE TEMP REGISTER
         // save r4
         // ST r4 #0
@@ -954,7 +1010,7 @@ generate_instruction (operands_t operands, const char* opstr)
         // BR NZP #1 
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                     
         //THIS MEM LOC contains r4                                              
-        // replace unconditional branch with r2
+        // replace unconditional branch with r4
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                    
 
         // LOAD ACTUAL REGISTER TO TEMP REGISTER
@@ -999,7 +1055,7 @@ generate_instruction (operands_t operands, const char* opstr)
         // BR NZP #1 
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                    
         // THIS MEM LOC contains r4                                              
-        // replace unconditional branch with r2
+        // replace unconditional branch with r4
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                      
 
         // save r5
