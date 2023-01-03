@@ -1,0 +1,15 @@
+.ORIG	x3000
+LD      R0, ZERO
+LD		R1, TWO
+LD  	R2, NEGTHREE
+
+RST R0
+
+HALT
+;
+ZERO	    .FILL	x0000
+TWO	   	    .FILL	x0002
+NEGTHREE	.FILL   xFFFD
+;
+.END
+

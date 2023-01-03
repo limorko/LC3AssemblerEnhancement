@@ -3421,7 +3421,7 @@ read_val (const char* s, int* vptr, int bits)
 {
     char* trash;
     long v;
-
+ 
     if (*s == 'x' || *s == 'X')
 	v = strtol (s + 1, &trash, 16);
     else {
@@ -3453,6 +3453,7 @@ write_value (int val)
     /* FIXME: just htons... */
     out[0] = (val >> 8);
     out[1] = (val & 0xFF);
+    //printf("%x \n", val);
     fwrite (out, 2, 1, objout);
 }
 
@@ -3997,40 +3998,63 @@ generate_instruction (operands_t operands, const char* opstr)
 	    	/* Check or read immediate range (error in first pass
 		   prevents execution of second, so never fails). */
 	        (void)read_val (o3, &val, 5);
-        // USE TEMP REGISTER FOR THE FACTOR OF THE MULTIPLICATION 
-        // PICK TEMP REGISTER
+        // PICK TEMP REGISTERS
         int r4 = 0; 
+        int r5 = 1; 
 
-        while (r4 == r1 || r4 == r2){
+        while (r4 == r1 || r4 == r2 ){
             r4 += 1;
         }
 
-        // STORE TEMP REGISTER
+        while (r5 == r1 || r5 == r2 || r5 == r4 ){
+            r5 += 1;
+        }
+
+        // STORE TEMP REGISTERS
         // save r4
         // ST r4 #0
         write_value (0x3000 | (r4 << 9) | (1 & 0x1FF));                        
         // BR NZP #1 
-        write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                     
-        //THIS MEM LOC contains r4                                              
-        // replace unconditional branch with r4
         write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                    
+        // THIS MEM LOC contains r4                                              
+        // replace unconditional branch with r4
+        write_value ((CC_P | CC_Z | CC_N) | (1 & 0x1FF));                      
 
-        // LOAD ACTUAL REGISTER TO TEMP REGISTER
+        // save r5
+        // ST r5 #0
+        write_value (0x3000 | (r5 << 9) | (1 & 0x1FF));                        
+        // BR NZP #1 
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                      
+        //THIS MEM LOC contains r5                                              
+        // replace unconditional branch with r5
+        write_value ((CC_P | CC_Z | CC_N)| (1 & 0x1FF));                       
+
+        // LOAD ACTUAL REGISTERS TO TEMP REGISTERS
         // load r2 into r4
-        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));                
-        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                    
+        write_value (0x5020 | (r4 << 9) | (r4 << 6) | (0x0000));               
+        write_value (0x1000 | (r4 << 9) | (r4 << 6) | r2);                     
+
+        // load val into r5
+        write_value (0x5020 | (r5 << 9) | (r5 << 6) | (0x0000));                
+        write_value (0x1020 | (r5 << 9) | (r5 << 6) | (val & 0x1F));                     
         
-        // PERFORM OR ON TEMP REGISTERS AND VAL
+        // PERFORM OR ON TEMP REGISTERS 
         // NOT r4
         write_value (0x903F | (r4 << 9) | (r4 << 6));
-        // NOT val; AND r4 and val
-        write_value (0x5020 | (r1 << 9) | (r4 << 6) | (!val & 0x1F));
-        // NOT result 
+        // NOT r5
+        write_value (0x903F | (r5 << 9) | (r5 << 6));
+        // AND r4 and r5 in r1
+        write_value (0x5000 | (r1 << 9) | (r4 << 6) | r5);
+        // NOT result (r1)
 		write_value (0x903F | (r1 << 9) | (r1 << 6));
 
         // restore r4
-        // LD r4, PC #-7
-        write_value (0x2000 | (r4 << 9) | (-7 & 0x1FF));                      
+        // LD r4, PC #-13
+        write_value (0x2000 | (r4 << 9) | (-13 & 0x1FF)); 
+
+        // restore r5
+        // LD r5, PC #-11
+        write_value (0x2000 | (r5 << 9) | (-11 & 0x1FF));                       
 
         // done 
         // to make sure the condition codes are not modified, add 0 to final value in the first register

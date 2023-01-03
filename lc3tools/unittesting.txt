@@ -1,0 +1,76 @@
+test RST: R 
+R format
+RST R0 ; R0 is a number 
+       ; R0 = 0
+
+
+test SUB: RRI, RRR 
+; R0 = 0, R1 = positive number, R2, negative number 
+RRI format
+SUB R0 negative negative 
+SUB R0 positive positive 
+SUB R0 negative positive 
+SUB R0 positive negative 
+SUB R0 0 0 
+SUB R0 # 0 
+SUB R0 0 # 
+
+RRR format
+SUB R1 R1 R0 
+SUB R0 R1 R0 
+SUB R1 R1 R1 
+SUB R0 R1 R2
+SUB R2 R2 R1   ;
+
+test MLT: RRI, RRR
+; R0 = 0, R1 = positive number, R2, negative number 
+RRI 
+MLT R0, R0, #0                  
+MLT R0, R1, #positivenum        
+MLT R0, R1, #negativenum        
+MLT R0, R1, #0                 
+MLT R0, R2, #positivenum        
+MLT R0, R2, #negativenum       
+MLT R2, R2, #0
+
+RRR 
+MLT R0, R1, R2
+MLT R0, R0, R1
+MLT R0, R1, R0
+MLT R1, R1, R1
+MLT R2, R2, R2
+
+
+test OR:  RRI, RRR
+RRI 
+OR R0, R0, #        ; val is a positive number
+OR R0, R1, #        ; val is a negative number 
+
+RRR
+; R0 = 0, R1 = positive number, R2, negative number 
+OR R0, R1, R2     
+OR R0, R1, R0
+OR R0, R0, R1
+OR R0, R0, R0   
+
+
+test ABS: RR
+RR
+ABS R0, R0   ;R0 = zero
+ABS R0, R1   ;R1 = positive number 
+ABS R0, R2   ;R2 = negative number
+ABS R1, R1   ;R1 = any number        
+
+
+test SQ: RR
+RR 
+SQ R0, R0   ;R0 = zero
+SQ R0, R1   ;R1 = positive number 
+SQ R0, R2   ;R2 = negative number
+SQ R1, R1   ;R1 = any number 
+
+
+test OPP: R format only 
+OPP R0 ; R0 = 0
+OPP R1 ; R1 = positive number 
+OPP R2 ; R2 = negative number
