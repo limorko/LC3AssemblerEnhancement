@@ -3578,7 +3578,7 @@ generate_instruction (operands_t operands, const char* opstr)
 	    // USE TEMP REGISTER TO PERFORM OPERATION
         // PICK TEMP REGISTER that is not being used in the instruction already 
         int r4 = 0;
-        while ((r3== r1 )|| (r4 == r2)){
+        while ((r4 == r1 )|| (r4 == r2)){
             r4 += 1;
         }
 
