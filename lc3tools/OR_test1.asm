@@ -6,7 +6,7 @@ LD      R3, ONE
 LD      R4, NEGTWO
 LD      R5, THREE
 
-OR R0, R1, #4
+OR R0, R1, #-4
 
 
 HALT
