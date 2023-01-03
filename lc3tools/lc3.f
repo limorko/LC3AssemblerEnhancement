@@ -521,7 +521,7 @@ write_value (int val)
     /* FIXME: just htons... */
     out[0] = (val >> 8);
     out[1] = (val & 0xFF);
-    //printf("%x \n", val);
+    printf("the current instruction's hexadecimal value is x%x \n", val);
     fwrite (out, 2, 1, objout);
 }
 
