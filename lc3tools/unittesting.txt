@@ -59,7 +59,7 @@ RR
 ABS R0, R0   ;R0 = zero
 ABS R0, R1   ;R1 = positive number 
 ABS R0, R2   ;R2 = negative number
-ABS R1, R1   ;R1 = any number        
+ABS R2, R2   ;R2 = any number        
 
 
 test SQ: RR
@@ -67,7 +67,7 @@ RR
 SQ R0, R0   ;R0 = zero
 SQ R0, R1   ;R1 = positive number 
 SQ R0, R2   ;R2 = negative number
-SQ R1, R1   ;R1 = any number 
+SQ R2, R2   ;R2 = any number 
 
 
 test OPP: R format only 

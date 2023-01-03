@@ -1,0 +1,11 @@
+// Symbol table
+// Scope level 0:
+//	Symbol Name       Page Address
+//	----------------  ------------
+//	ZERO              3020
+//	TWO               3021
+//	NEGTHREE          3022
+//	ONE               3023
+//	NEGTWO            3024
+//	THREE             3025
+
