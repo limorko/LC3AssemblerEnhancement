@@ -5,6 +5,34 @@
 Implemented additional instructions to the LC3++ Assembly Language 
 (Please refer to the code committed to lc3tools/lc3.f for details)
 
+Reset a register
+Operation RST: R format only
+RST R0 
+
+Subtract two numbers
+Operation SUB: RRI, RRR formats 
+SUB R2 R2 R1   
+
+Multiply two numbers
+Operation MLT: RRI, RRR formats
+MLT R0, R1, R2
+
+Or 
+Operation OR:  RRI, RRR formats
+OR R0, R1, R2     
+
+
+Get the absolute value of a number
+Operation ABS: RR format only
+ABS R0, R1        
+
+Square a number (power of 2)
+Operation SQ: RR format only 
+SQ R0, R0   
+
+Get the opposite number
+Operation OPP: R format only 
+OPP R0 
 
 -----------------------------
    DESCRIPTION OF CONTENTS
