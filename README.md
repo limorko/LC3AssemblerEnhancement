@@ -1,4 +1,4 @@
-DESCRIPTION OF CONTENTS
+*DESCRIPTION OF CONTENTS*
 The LC-3 tools package contains the lc3as assembler, the lc3sim simulator, and lc3sim-tk, a Tcl/Tk-based GUI frontend to the simulator. All tools, code, etc., were developed by Steven S. Lumetta on his own time with his own resources for use in teaching classes based on the textbook by Yale N. Patt and Sanjay J. Patel entitled, "Introduction to Computing Systems: From Bits & Gates to C & Beyond," second edition, McGraw-Hill, New York, New York, 2004, ISBN-0-07-246750-9.
 
 The contents of the LC-3 tools distribution, including sources, management tools, and data, are Copyright (c) 2003 Steven S. Lumetta.
